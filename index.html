@@ -334,6 +334,7 @@
     }
     function openDiag(e) {
       if (e) e.preventDefault()
+      if (!diagModal) return
       lastFocusedEl = document.activeElement
       diagModal.classList.remove('hidden')
       document.body.classList.add('overflow-hidden')
@@ -342,16 +343,28 @@
       if (f.length) f[0].focus()
     }
     function closeDiag() {
+      if (!diagModal) return
       diagModal.classList.add('hidden')
       document.body.classList.remove('overflow-hidden')
       if (lastFocusedEl && typeof lastFocusedEl.focus === 'function') lastFocusedEl.focus()
     }
     // Openers: elements with class or matching text
-    const openerNodes = [
-      ...document.querySelectorAll('.js-diag-open'),
-      ...Array.from(document.querySelectorAll('a')).filter(a => /無料診断|今の体に合う方法を知る（無料）/.test((a.textContent||'').trim()))
-    ]
-    openerNodes.forEach(a => a.addEventListener('click', openDiag))
+    if (diagModal) {
+      const openerNodes = [
+        ...document.querySelectorAll('.js-diag-open'),
+        ...Array.from(document.querySelectorAll('a')).filter(a => /無料診断|今の体に合う方法を知る（無料）/.test((a.textContent||'').trim()))
+      ]
+      openerNodes.forEach(a => a.addEventListener('click', openDiag))
+    }
+    // Delegated click handler as a fallback (handles dynamically added links or text-only matches)
+    document.addEventListener('click', (ev) => {
+      const a = ev.target && (ev.target.closest ? ev.target.closest('a') : null)
+      if (!a) return
+      const txt = (a.textContent || '').trim()
+      if (a.classList.contains('js-diag-open') || /無料診断|今の体に合う方法を知る（無料）/.test(txt)) {
+        openDiag(ev)
+      }
+    })
     // Closers
     document.querySelectorAll('.js-diag-close').forEach(el => el.addEventListener('click', closeDiag))
     const backdrop = diagModal ? diagModal.querySelector('.absolute.inset-0') : null
@@ -373,7 +386,7 @@
     // Form handling
     const diagForm = document.getElementById('diagForm')
     const diagResult = document.getElementById('diagResult')
-    if (diagForm) {
+    if (diagForm && diagModal) {
       diagForm.addEventListener('submit', function (e) {
         e.preventDefault()
         const fd = new FormData(diagForm)
